@@ -1,0 +1,2 @@
+# svls
+SystemVerilog Language Server
