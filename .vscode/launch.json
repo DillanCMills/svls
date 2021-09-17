@@ -5,30 +5,52 @@
 {
 	"version": "0.2.0",
 	"configurations": [
-		{
-			"name": "Run Extension",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}"
-			],
-			"outFiles": [
-				"${workspaceFolder}/out/**/*.js"
-			],
-			"preLaunchTask": "${defaultBuildTask}"
-		},
-		{
-			"name": "Extension Tests",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
-			],
-			"outFiles": [
-				"${workspaceFolder}/out/test/**/*.js"
-			],
-			"preLaunchTask": "${defaultBuildTask}"
-		}
+		 {
+			  "name": "Launch Client",
+			  "type": "extensionHost",
+			  "request": "launch",
+			  "runtimeExecutable": "${execPath}",
+			  "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
+			  "outFiles": ["${workspaceRoot}/client/out/**/*.js"],
+			  "preLaunchTask": {
+					"type": "npm",
+					"script": "compile"
+			  },
+			  "env": {
+					"VSCODE_DEBUG_MODE": "true"
+			  }
+		 },
+		 {
+			  "name": "Launch Server",
+			  "type": "python",
+			  "request": "launch",
+			  "module": "server",
+			  "args": ["--tcp"],
+			  "justMyCode": false,
+			  "python": "${command:python.interpreterPath}",
+			  "cwd": "${workspaceFolder}",
+			  "env": {
+					"PYTHONPATH": "${workspaceFolder}"
+			  }
+		 },
+		 {
+			  "name": "Launch Server [WebSockets]",
+			  "type": "python",
+			  "request": "launch",
+			  "module": "server",
+			  "args": ["--ws"],
+			  "justMyCode": false,
+			  "python": "${command:python.interpreterPath}",
+			  "cwd": "${workspaceFolder}",
+			  "env": {
+					"PYTHONPATH": "${workspaceFolder}"
+			  }
+		 }
+	],
+	"compounds": [
+		 {
+			  "name": "Server + Client",
+			  "configurations": ["Launch Server", "Launch Client"]
+		 }
 	]
 }

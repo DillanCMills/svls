@@ -1,1 +1,7 @@
-node_modules/
+out
+node_modules
+client/server
+.vscode-test
+.vscode/settings.json
+__pycache__
+svls.log

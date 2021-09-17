@@ -1,0 +1,21 @@
+{
+	"name": "svls-client",
+	"description": "Systemverilog Language Server VS Code Client",
+	"author": "Dillan Mills",
+	"license": "GPL-3.0-or-later",
+	"version": "0.0.1",
+	"publisher": "Dillan Mills",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/DillanCMills/svls"
+	},
+	"engines": {
+		"vscode": "^1.60.0"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^7.0.0"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.52.0"
+	}
+}

@@ -1,8 +1,9 @@
 .vscode/**
 .vscode-test/**
-out/test/**
+client/out/test/**
+client/out/*.map
+client/src/**
 
-src/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
@@ -10,3 +11,6 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
+**/package.json
+**/package-lock.json
+**/.pytest_cache
