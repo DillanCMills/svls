@@ -25,7 +25,7 @@
 			  "type": "python",
 			  "request": "launch",
 			  "module": "server",
-			  "args": ["--tcp"],
+			  "args": ["--tcp", "--slangLib", "./external/slang/build/lib", "--slangSource", "./external/slang"],
 			  "justMyCode": false,
 			  "python": "${command:python.interpreterPath}",
 			  "cwd": "${workspaceFolder}",

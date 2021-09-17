@@ -22,10 +22,22 @@
 	],
 	"main": "./client/out/extension.js",
 	"contributes": {
+		"languages": [
+			{
+				"id": "verilog",
+				"aliases": ["Verilog"],
+				"extensions": [".v", ".vh"]
+			},
+			{
+				"id": "systemverilog",
+				"aliases": ["SystemVerilog", "SV"],
+				"extensions": [".sv", ".svh"]
+			}
+		],
 		"commands": [],
 		"configuration": {
 			"type": "object",
-			"title": "svls Configuration",
+			"title": "svls",
 			"properties": {
 				"svls.maxNumberOfProblems": {
 					"scope": "resource",
@@ -33,7 +45,7 @@
 					"default": 100,
 					"description": "Controls the maximum nubmer of problems produced by the server."
 				},
-				"languageServerExample.trace.server": {
+				"svls.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -43,6 +55,18 @@
 					],
 					"default": "off",
 					"description": "Traces the communication between VS Code and the language server."
+				},
+				"svls.slangLibrariesPath": {
+					"scope": "window",
+					"type": "string",
+					"default": null,
+					"description": "The path to the lib directory containing the compiled slang libraries."
+				},
+				"svls.slangSourceCodePath": {
+					"scope": "window",
+					"type": "string",
+					"default": null,
+					"description": "The path to the directory containing the root of the git repo for the slang source code."
 				}
 			}
 		}

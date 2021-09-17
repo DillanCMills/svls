@@ -91,11 +91,20 @@ export function activate(context: ExtensionContext): void {
             .getConfiguration("python")
             .get<string>("pythonPath");
 
+        const libPath = workspace
+            .getConfiguration("svls")
+            .get<string>("slangLibrariesPath") || "";
+        const sourcePath = workspace
+            .getConfiguration("svls")
+            .get<string>("slangSourceCodePath") || "";
+
         if (!pythonPath) {
             throw new Error("`python.pythonPath` is not set");
         }
 
-        client = startLangServer(pythonPath, ["-m", "server"], cwd);
+        client = startLangServer(pythonPath, ["-m", "server", 
+                                              "--slangLib", libPath,
+                                              "--slangSource", sourcePath], cwd);
     }
 
     context.subscriptions.push(client.start());

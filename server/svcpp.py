@@ -1,27 +1,34 @@
 import cppyy
 import cppyy.ll
+from pathlib import Path
+
+from .args import args
+
+libP = Path(args.slangLib)
+sourceP = Path(args.slangSource)
 
 ############################################################################
 # Set up cppyy (runs from root directory)
 ############################################################################
 cppyy.ll.set_signals_as_exception(True)
 
-cppyy.add_include_path('external/slang/include')
-cppyy.add_include_path('external/slang/external')
-cppyy.add_include_path('external/slang/build/source')
+cppyy.add_include_path(str(sourceP / 'include'))
+cppyy.add_include_path(str(sourceP / 'external'))
+cppyy.add_include_path(str(sourceP / 'build' / 'source'))
 
 cppyy.include('slang/compilation/Compilation.h')
 cppyy.include('slang/diagnostics/DiagnosticClient.h')
 cppyy.include('slang/diagnostics/DiagnosticEngine.h')
 cppyy.include('slang/syntax/SyntaxTree.h')
+
 cppyy.include('slang/text/SourceManager.h')
 cppyy.include('slang/text/SourceLocation.h')
 cppyy.include('slang/util/SmallVector.h')
 
-cppyy.load_library('external/slang/build/lib/libslangcore')
-cppyy.load_library('external/slang/build/lib/libslangparser')
-cppyy.load_library('external/slang/build/lib/libslangruntime')
-cppyy.load_library('external/slang/build/lib/libslangcompiler')
+cppyy.load_library(str(libP / 'libslangcore'))
+cppyy.load_library(str(libP / 'libslangparser'))
+cppyy.load_library(str(libP / 'libslangruntime'))
+cppyy.load_library(str(libP / 'libslangcompiler'))
 ############################################################################
 
 slang = cppyy.gbl.slang
