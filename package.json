@@ -95,7 +95,7 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile && npx js-yaml syntaxes/abc.tmLanguage.yaml > syntaxes/abc.tmLanguage.json",
+		"vscode:prepublish": "npm run compile && npx js-yaml syntaxes/systemverilog.tmLanguage.yaml > syntaxes/systemverilog.tmLanguage.json",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"pretest": "npm run compile && npm run lint",
