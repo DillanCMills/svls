@@ -57,6 +57,18 @@
 				"path": "./syntaxes/systemverilog.tmLanguage.json"
 			}
 		],
+		"themes": [
+			{
+				"label": "Sunburst",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Sunburst-color-theme.json"
+			},
+			{
+				"label": "Sunburst 2",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Sunburst 2-color-theme.json"
+			}
+	  	],
 		"commands": [],
 		"configuration": {
 			"type": "object",
