@@ -1,5 +1,5 @@
 import cppyy
-import cppyy.ll
+# import cppyy.ll
 from pathlib import Path
 
 from .args import args
@@ -10,7 +10,7 @@ sourceP = Path(args.slangSource)
 ############################################################################
 # Set up cppyy (runs from root directory)
 ############################################################################
-cppyy.ll.set_signals_as_exception(True)
+# cppyy.ll.set_signals_as_exception(True)
 
 cppyy.add_include_path(str(sourceP / 'include'))
 cppyy.add_include_path(str(sourceP / 'external'))
@@ -20,6 +20,13 @@ cppyy.include('slang/compilation/Compilation.h')
 cppyy.include('slang/diagnostics/DiagnosticClient.h')
 cppyy.include('slang/diagnostics/DiagnosticEngine.h')
 cppyy.include('slang/syntax/SyntaxTree.h')
+cppyy.include('slang/syntax/SyntaxNode.h')
+cppyy.include('slang/syntax/SyntaxKind.h')
+cppyy.include('slang/parsing/Token.h')
+# cppyy.include('slang/syntax/SyntaxVisitor.h')
+# cppyy.include('slang/symbols/ASTVisitor.h')
+cppyy.include('slang/parsing/Lexer.h')
+cppyy.include('slang/parsing/LexerFacts.h')
 
 cppyy.include('slang/text/SourceManager.h')
 cppyy.include('slang/text/SourceLocation.h')
@@ -36,7 +43,15 @@ SyntaxTree = slang.SyntaxTree
 Compilation = slang.Compilation
 DiagnosticEngine = slang.DiagnosticEngine
 SourceManager = slang.SourceManager
-
+SyntaxNode = slang.SyntaxNode
+Token = slang.Token
+SyntaxKind = slang.SyntaxKind
+syntaxKindLookup = dict([(value, key) for key, value in SyntaxKind.__dict__.items()])
+TokenKind = slang.TokenKind
+tokenKindLookup = dict([(value, key) for key, value in TokenKind.__dict__.items()])
+SourceBuffer = slang.SourceBuffer
+Diagnostics = slang.Diagnostics
+Lexer = slang.Lexer
 class JSONDiagnosticClient(slang.DiagnosticClient):
 
    def __init__(self):
@@ -116,3 +131,61 @@ class JSONDiagnosticClient(slang.DiagnosticClient):
 
    def getBuf(self):
       return self.bufArr
+
+
+class Visitor():
+
+   def visitToken(self, token: Token):
+      # print('Visiting token:', token)
+      trivia = [str(x.getRawText()) for x in token.trivia()]
+      print('{%s: %s}' % (
+         tokenKindLookup.get(token.kind, token.kind),
+         str(token.valueText())))
+      if len(trivia) > 0:
+         print('    ', trivia)
+
+   def walkTree(self, node: SyntaxNode):
+      # print('Visiting node:', node)
+      # print('node:', node.toString().replace(' ', '-').replace('\n', '\\n'))
+      # print('')
+      for i in range(node.getChildCount()):
+         child = node.childNode(i)
+         if (child):
+            self.walkTree(child)
+         else:
+            token = node.childToken(i)
+            if (token):
+               self.visitToken(token)
+
+
+# class NodeRewriter(Rewriter):
+#    # pass   
+#    def visit(self, node: SyntaxNode):
+#       print('Visitng node:', node)
+#       super().visit(node)
+
+   # def handle(self, node: SyntaxNode):
+   #    print('Handling node:', node)
+   #    # super.handle(node)
+
+# class Visitor(ASTVisitor[SyntaxNode, True, True]):
+#    pass
+
+# class Rewriter(NodeRewriter):
+
+#    def __init__(self):
+#       super().__init__()
+#       self.count = 0
+
+   # def visit(self, node: SyntaxNode):
+   #    print('Visiting node:', node)
+   # #    super().visit[SyntaxNode](node)
+
+   # def visitDefault(self, node: SyntaxNode):
+   #    print('Visitng default node:', node)
+
+   # def handle(self, node: SyntaxNode):
+   #    print('Handling node:', node)
+   #    self.count += 1
+   #    super().visitDefault(node)
+      # self.visit[SyntaxNode](node)
