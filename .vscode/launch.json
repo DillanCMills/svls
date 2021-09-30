@@ -5,52 +5,117 @@
 {
 	"version": "0.2.0",
 	"configurations": [
-		 {
-			  "name": "Launch Client",
-			  "type": "extensionHost",
-			  "request": "launch",
-			  "runtimeExecutable": "${execPath}",
-			  "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-			  "outFiles": ["${workspaceRoot}/client/out/**/*.js"],
-			  "preLaunchTask": {
-					"type": "npm",
-					"script": "compile"
-			  },
-			  "env": {
-					"VSCODE_DEBUG_MODE": "true"
-			  }
-		 },
-		 {
-			  "name": "Launch Server",
-			  "type": "python",
-			  "request": "launch",
-			  "module": "server",
-			  "args": ["--tcp", "--slangLib", "./external/slang/build/lib", "--slangSource", "./external/slang"],
-			  "justMyCode": false,
-			  "python": "${command:python.interpreterPath}",
-			  "cwd": "${workspaceFolder}",
-			  "env": {
-					"PYTHONPATH": "${workspaceFolder}"
-			  }
-		 },
-		 {
-			  "name": "Launch Server [WebSockets]",
-			  "type": "python",
-			  "request": "launch",
-			  "module": "server",
-			  "args": ["--ws"],
-			  "justMyCode": false,
-			  "python": "${command:python.interpreterPath}",
-			  "cwd": "${workspaceFolder}",
-			  "env": {
-					"PYTHONPATH": "${workspaceFolder}"
-			  }
-		 }
+		{
+			"name": "(gdb) Launch",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/test",
+			"args": [],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}",
+			"environment": [
+				{
+					"name": "LD_LIBRARY_PATH",
+					"value": "${workspaceFolder}/external/slang/build/lib/"
+				},
+				{
+					"name": "EXTRA_CLING_ARGS",
+					"value": "-g"
+				}
+			],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+				 {
+					  "description": "Enable pretty-printing for gdb",
+					  "text": "-enable-pretty-printing",
+					  "ignoreFailures": true
+				 }
+			]
+		},
+		
+		{
+			"name": "Python: Module",
+			"type": "python",
+			"request": "launch",
+			"module": "server",
+			"env": {
+				"EXTRA_CLING_ARGS": "-g -O2"
+			},
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"name": "Python: Current File",
+			"type": "python",
+			"request": "launch",
+			"program": "${file}",
+			"console": "integratedTerminal",
+			"env": {
+				"EXTRA_CLING_ARGS": "-g -O2"
+			},
+			"cwd": "${workspaceFolder}"
+		},
+		{
+			"name": "Launch Client",
+			"type": "extensionHost",
+			"request": "launch",
+			"runtimeExecutable": "${execPath}",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}"
+			],
+			"outFiles": [
+				"${workspaceRoot}/client/out/**/*.js"
+			],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "compile"
+			},
+			"env": {
+				"VSCODE_DEBUG_MODE": "true"
+			}
+		},
+		{
+			"name": "Launch Server",
+			"type": "python",
+			"request": "launch",
+			"module": "server",
+			"args": [
+				"--tcp",
+				"--slangLib",
+				"./external/slang/build/lib",
+				"--slangSource",
+				"./external/slang"
+			],
+			"justMyCode": false,
+			"python": "${command:python.interpreterPath}",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}"
+			}
+		},
+		{
+			"name": "Launch Server [WebSockets]",
+			"type": "python",
+			"request": "launch",
+			"module": "server",
+			"args": [
+				"--ws"
+			],
+			"justMyCode": false,
+			"python": "${command:python.interpreterPath}",
+			"cwd": "${workspaceFolder}",
+			"env": {
+				"PYTHONPATH": "${workspaceFolder}"
+			}
+		}
 	],
 	"compounds": [
-		 {
-			  "name": "Server + Client",
-			  "configurations": ["Launch Server", "Launch Client"]
-		 }
+		{
+			"name": "Server + Client",
+			"configurations": [
+				"Launch Server",
+				"Launch Client"
+			]
+		}
 	]
 }

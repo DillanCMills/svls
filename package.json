@@ -14,7 +14,14 @@
 		"vscode": "^1.60.0"
 	},
 	"categories": [
-		"Other"
+		"Formatters",
+		"Language Packs",
+		"Languages",
+		"Linters",
+		"Other",
+		"Programming Languages",
+		"Snippets",
+		"Themes"
 	],
 	"activationEvents": [
 		"onLanguage:verilog",
@@ -31,7 +38,8 @@
 				"extensions": [
 					".v",
 					".vh"
-				]
+				],
+				"configuration": "./syntaxes/language-configuration.json"
 			},
 			{
 				"id": "systemverilog",
@@ -42,7 +50,8 @@
 				"extensions": [
 					".sv",
 					".svh"
-				]
+				],
+				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -69,6 +78,16 @@
 				"path": "./themes/Sunburst 2-color-theme.json"
 			}
 	  	],
+		"snippets": [
+			{
+				"language": "verilog",
+				"path": "./syntaxes/snippets.json"
+			},
+			{
+				"language": "systemverilog",
+				"path": "./syntaxes/snippets.json"
+			}
+		],
 		"commands": [],
 		"configuration": {
 			"type": "object",

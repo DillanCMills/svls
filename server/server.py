@@ -18,9 +18,13 @@ import asyncio
 import time
 import uuid
 from typing import Optional
+
+from pygls.lsp.types.language_features.semantic_tokens import SemanticTokensParams
 from .svcpp import *
 from pygls.lsp.methods import (COMPLETION, TEXT_DOCUMENT_DID_CHANGE,
-                               TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN)
+                               TEXT_DOCUMENT_DID_CLOSE, TEXT_DOCUMENT_DID_OPEN,
+                               TEXT_DOCUMENT_SEMANTIC_TOKENS, 
+                               TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL)
 from pygls.lsp.types import (CompletionItem, CompletionList, CompletionOptions,
                              CompletionParams, ConfigurationItem,
                              ConfigurationParams, Diagnostic,
@@ -28,7 +32,9 @@ from pygls.lsp.types import (CompletionItem, CompletionList, CompletionOptions,
                              DidCloseTextDocumentParams,
                              DidOpenTextDocumentParams, MessageType, Position,
                              Range, Registration, RegistrationParams,
-                             Unregistration, UnregistrationParams)
+                             Unregistration, UnregistrationParams, 
+                             SemanticTokensOptions,SemanticTokensLegend,
+                             SemanticTokens)
 from pygls.lsp.types.basic_structures import (DiagnosticSeverity, WorkDoneProgressBegin,
                                               WorkDoneProgressEnd,
                                               WorkDoneProgressReport)
@@ -156,6 +162,28 @@ async def did_open(ls, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
     ls.show_message('Text Document Did Open')
     _validate(ls, params)
+
+
+# @svls.feature(
+#     TEXT_DOCUMENT_SEMANTIC_TOKENS,
+#     SemanticTokensOptions(
+#         legend=SemanticTokensLegend(
+#             tokenTypes=[],
+#             tokenModifiers=[]
+#         )
+#     )
+# )
+# async def semantic_tokens(ls):
+#     """Used to signal to the client that we support tokens."""
+
+
+@svls.feature(TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL)
+def semantic_tokens_full(ls, params: SemanticTokensParams):
+    """A 'full' semantic tokens request."""
+
+    return SemanticTokens(data=[
+        # deltaLine, deltaStart, length, tokenType, tokenModifiers
+    ])
 
 
 @svls.command(SVLanguageServer.CMD_PROGRESS)
