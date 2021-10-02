@@ -17,6 +17,10 @@
 import asyncio
 import time
 import uuid
+import re
+import os
+from pathlib import Path
+from urllib.parse import unquote, urlparse
 from typing import Optional
 
 from pygls.lsp.types.language_features.semantic_tokens import SemanticTokensParams
@@ -39,10 +43,16 @@ from pygls.lsp.types.basic_structures import (DiagnosticSeverity, WorkDoneProgre
                                               WorkDoneProgressEnd,
                                               WorkDoneProgressReport)
 from pygls.server import LanguageServer
+from pygls.uris import to_fs_path
 
 
 COUNT_DOWN_START_IN_SECONDS = 10
 COUNT_DOWN_SLEEP_IN_SECONDS = 1
+
+fcomment = re.compile(r'^\s*//')
+svfile = re.compile(r'^\s*(.*\.s?vh?)\s*$')
+ffile = re.compile(r'^\s*-[fF]\s+(.*\.f)\s*$')
+includeFile = re.compile(r'^\s*`include\s+"(.*\.s?vh?)"\s*$')
 
 
 class SVLanguageServer(LanguageServer):
@@ -55,43 +65,169 @@ class SVLanguageServer(LanguageServer):
     CMD_SHOW_CONFIGURATION_THREAD = 'showConfigurationThread'
     CMD_UNREGISTER_COMPLETIONS = 'unregisterCompletions'
 
-    CONFIGURATION_SECTION = 'SVLS'
+    CONFIGURATION_SECTION = 'svls'
 
     def __init__(self):
         super().__init__()
+        self.files = {}
+        self.tempFiles = {}
+        self.fileList = []
+        self.uvmPkgPath = ''
+        self.ignoreUvmPackage = False
+
+        
+    def _parse_ffiles(self, files):
+        """Parse .f filelist"""
+
+        self.files = {}
+
+        for file in files:
+            if file.exists() and not file.is_dir():
+                with file.open() as f:
+                    for line in f:
+                        if fcomment.match(line):
+                            continue
+                        svf = svfile.match(line)
+                        if svf:
+                            svf = svf.group(1).replace('$UVM_HOME', self.uvmPkgPath)
+                            filePath = (file.parent / Path(svf)).resolve()
+                            if filePath.exists() and not filePath.is_dir():
+                                # self.fileList.append(filePath)
+                                # self.tempFiles[filePath] = None
+                                self.files[filePath] = None
+
+        # # Remove deleted files
+        # for file in self.files.keys():
+        #     if file not in self.tempFiles:
+        #         del self.files[file]
+
+        # # Add new files
+        # for file in self.tempFiles.keys():
+        #     if file not in self.files:
+        #         self.files[file] = None
+
+        # self.tempFiles = {}
 
 
 svls = SVLanguageServer()
 
-
-def _validate(ls, params):
+async def _validate(ls: SVLanguageServer, params):
     ls.show_message_log('Validating SV...')
 
+    config = await ls.get_configuration_async(
+        ConfigurationParams(items=[
+            ConfigurationItem(
+                scope_uri='',
+                section=SVLanguageServer.CONFIGURATION_SECTION
+            )
+        ])
+    )
+    # ls.show_message_log(config)
+
+    ffiles = config[0].get('fFileLists')
+    svls.ignoreUvmPackage = config[0].get('ignoreUvmPackageWarnings')
+    svls.uvmPkgPath = config[0].get('uvmPackagePath')
+
+    if svls.uvmPkgPath == '':
+        svls.uvmPkgPath = os.environ.get('UVM_HOME', '')
+
+    # ls.show_message_log(ffiles)
+
+    ffiles = [Path(file.replace('${workspaceRoot}', ls.workspace.root_path)).resolve() for file in ffiles]
+    # ls.show_message_log(ffiles)
+
+    svls._parse_ffiles(ffiles)
+
+    # sourcePath = Path(unquote(urlparse(params.text_Document.uri).path)).resolve()
+    # if len(svls.files) == 0 or params.text_document.uri.startswith('untitled:'):
     text_doc = ls.workspace.get_document(params.text_document.uri)
+    # source = text_doc.source
 
-    source = text_doc.source
-    diagnostics = _validate_sv(source) if source else []
+    diagnostics = _validate_sv(text_doc) if (text_doc.source or (len(svls.files) > 0)) else []
 
-    ls.publish_diagnostics(text_doc.uri, diagnostics)
+    if len(diagnostics) > 0:
+        for svf, diags in diagnostics.items():
+            if str(svf).startswith('untitled:'):
+                svf = text_doc.uri
+            ls.publish_diagnostics(str(svf), diags)
+    else:
+        ls.publish_diagnostics(text_doc.uri, diagnostics)
 
 
-def _validate_sv(source):
+def _validate_sv(text_doc):
     """Validates SV file."""
-    diagnostics = []
+    diagnostics = {}
 
     comp = Compilation()
     sm = SourceManager()
-    t = SyntaxTree.fromText(source, sm)
-    comp.addSyntaxTree(t)
-    de = DiagnosticEngine(t.sourceManager())
+
+    # Add uvm_pkg path to source manager
+    if (svls.uvmPkgPath != ''):
+        sm.addUserDirectory('%s/src' % svls.uvmPkgPath)
+
+    # Resolve source path
+    sourcePath = text_doc.uri
+    if not sourcePath.startswith('untitled:'):
+        sourcePath = Path(unquote(urlparse(text_doc.uri).path)).resolve()
+
+    # Add file currently being edited
+    if text_doc.source and not str(sourcePath).endswith('.f'):
+
+        # scan for include directories currently missing (possible temporary based on slang improvements)
+        includePaths = set()
+        for line in text_doc.lines:
+            m = includeFile.match(line)
+            if m:
+                includePaths.add(Path(m.group(1)).parent.resolve())
+
+        for p in includePaths:
+            sm.addUserDirectory(p)
+
+        # Create buffer for source from client
+        byteSource = bytes(text_doc.source, 'utf-8')
+        sv = cppyy.gbl.string_view(byteSource)
+        sv._buffer = byteSource
+        buf = sm.assignText(
+            str(sourcePath),
+            sv
+        )
+        
+        # Add buffer to comp unit
+        t = SyntaxTree.fromBuffer(buf, sm)
+        svls.files[sourcePath] = t
+        comp.addSyntaxTree(t)
+
+    # Add all files in the .f list, skipping the current one if it is in the list
+    # If the current file is a `include file, adding it previously will be sufficient
+    for svf, t in svls.files.items():
+        if svf != sourcePath:
+            p = str(svf)
+            t = SyntaxTree.fromFile(p, sm)
+            svls.files[svf] = t
+            comp.addSyntaxTree(t)
+
+    # Generate diagnostics for comp unit
+    de = DiagnosticEngine(sm)
     client = JSONDiagnosticClient()
     de.addClient(client)
 
     for d in comp.getAllDiagnostics():
         de.issue(d)
 
+    # Process diagnostic results
     results = client.getBuf()
     for res in results:
+
+        # Resolve path
+        path = Path(res['fileName'])
+        if not res['fileName'].startswith('untitled:'):
+            path = path.resolve()
+
+        # Skip UVM package warnings if enabled
+        if svls.ignoreUvmPackage:
+            if str(Path(svls.uvmPkgPath).resolve()) in str(path) and res['severity'] >= 2:
+                continue
+
         d = Diagnostic(
             range=Range(
                 start=Position(line=res['lineNumber'], character=res['startCol']),
@@ -103,7 +239,11 @@ def _validate_sv(source):
             source=type(svls).__name__
         )
 
-        diagnostics.append(d)
+        if path not in diagnostics:
+            diagnostics[path] = []
+        diagnostics[path].append(d)
+
+    # print('\n\n')
 
     return diagnostics
 
@@ -146,9 +286,9 @@ async def count_down_10_seconds_non_blocking(ls, *args):
 
 
 @svls.feature(TEXT_DOCUMENT_DID_CHANGE)
-def did_change(ls, params: DidChangeTextDocumentParams):
+async def did_change(ls, params: DidChangeTextDocumentParams):
     """Text document did change notification."""
-    _validate(ls, params)
+    await _validate(ls, params)
 
 
 @svls.feature(TEXT_DOCUMENT_DID_CLOSE)
@@ -161,7 +301,7 @@ def did_close(server: SVLanguageServer, params: DidCloseTextDocumentParams):
 async def did_open(ls, params: DidOpenTextDocumentParams):
     """Text document did open notification."""
     ls.show_message('Text Document Did Open')
-    _validate(ls, params)
+    await _validate(ls, params)
 
 
 # @svls.feature(
@@ -224,7 +364,7 @@ async def register_completions(ls: SVLanguageServer, *args):
 
 @svls.command(SVLanguageServer.CMD_SHOW_CONFIGURATION_ASYNC)
 async def show_configuration_async(ls: SVLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using coroutines."""
+    """Gets slangFFileLists from the client settings using coroutines."""
     try:
         config = await ls.get_configuration_async(
             ConfigurationParams(items=[
@@ -233,9 +373,9 @@ async def show_configuration_async(ls: SVLanguageServer, *args):
                     section=SVLanguageServer.CONFIGURATION_SECTION)
         ]))
 
-        example_config = config[0].get('exampleConfiguration')
+        example_config = config[0].get('slangFFileLists')
 
-        ls.show_message(f'SVLS.exampleConfiguration value: {example_config}')
+        ls.show_message(f'SVLS.slangFFileLists value: {example_config}')
 
     except Exception as e:
         ls.show_message_log(f'Error ocurred: {e}')
@@ -243,12 +383,12 @@ async def show_configuration_async(ls: SVLanguageServer, *args):
 
 @svls.command(SVLanguageServer.CMD_SHOW_CONFIGURATION_CALLBACK)
 def show_configuration_callback(ls: SVLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using callback."""
+    """Gets slangFFileLists from the client settings using callback."""
     def _config_callback(config):
         try:
-            example_config = config[0].get('exampleConfiguration')
+            example_config = config[0].get('slangFFileLists')
 
-            ls.show_message(f'SVLS.exampleConfiguration value: {example_config}')
+            ls.show_message(f'SVLS.slangFFileLists value: {example_config}')
 
         except Exception as e:
             ls.show_message_log(f'Error ocurred: {e}')
@@ -263,7 +403,7 @@ def show_configuration_callback(ls: SVLanguageServer, *args):
 @svls.thread()
 @svls.command(SVLanguageServer.CMD_SHOW_CONFIGURATION_THREAD)
 def show_configuration_thread(ls: SVLanguageServer, *args):
-    """Gets exampleConfiguration from the client settings using thread pool."""
+    """Gets slangFFileLists from the client settings using thread pool."""
     try:
         config = ls.get_configuration(ConfigurationParams(items=[
             ConfigurationItem(
@@ -271,9 +411,9 @@ def show_configuration_thread(ls: SVLanguageServer, *args):
                 section=SVLanguageServer.CONFIGURATION_SECTION)
         ])).result(2)
 
-        example_config = config[0].get('exampleConfiguration')
+        example_config = config[0].get('slangFFileLists')
 
-        ls.show_message(f'SVLS.exampleConfiguration value: {example_config}')
+        ls.show_message(f'SVLS.slangFFileLists value: {example_config}')
 
     except Exception as e:
         ls.show_message_log(f'Error ocurred: {e}')

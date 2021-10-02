@@ -37,7 +37,8 @@
 				],
 				"extensions": [
 					".v",
-					".vh"
+					".vh",
+					".f"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
 			},
@@ -49,7 +50,8 @@
 				],
 				"extensions": [
 					".sv",
-					".svh"
+					".svh",
+					".f"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
 			}
@@ -88,7 +90,41 @@
 				"path": "./syntaxes/snippets.json"
 			}
 		],
-		"commands": [],
+		"commands": [
+			
+			{
+				"command": "countDownBlocking",
+				"title": "Count down 10 seconds [Blocking]"
+			 },
+			 {
+				"command": "countDownNonBlocking",
+				"title": "Count down 10 seconds [Non Blocking]"
+			 },
+			 {
+				"command": "progress",
+				"title": "Start the progress"
+			 },
+			 {
+				"command": "registerCompletions",
+				"title": "Register completions"
+			 },
+			 {
+				"command": "showConfigurationAsync",
+				"title": "Show Json Example Configuration [Async]"
+			 },
+			 {
+				"command": "showConfigurationCallback",
+				"title": "Show Json Example Configuration [Callback]"
+			 },
+			 {
+				"command": "showConfigurationThread",
+				"title": "Show Json Example Configuration [Thread]"
+			 },
+			 {
+				"command": "unregisterCompletions",
+				"title": "Unregister completions"
+			 }
+		],
 		"configuration": {
 			"type": "object",
 			"title": "svls",
@@ -110,17 +146,38 @@
 					"default": "off",
 					"description": "Traces the communication between VS Code and the language server."
 				},
-				"svls.slangLibrariesPath": {
+				"svls.slang.librariesPath": {
 					"scope": "window",
 					"type": "string",
 					"default": null,
 					"description": "The path to the lib directory containing the compiled slang libraries."
 				},
-				"svls.slangSourceCodePath": {
+				"svls.slang.sourceCodePath": {
 					"scope": "window",
 					"type": "string",
 					"default": null,
 					"description": "The path to the directory containing the root of the git repo for the slang source code."
+				},
+				"svls.fFileLists": {
+					"scope": "window",
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [],
+					"description": ".f file lists for the compiler to add to the compilation unit."
+				},
+				"svls.uvmPackagePath": {
+					"scope": "Window",
+					"type": "string",
+					"default": "",
+					"description": "The path to uvm_pkg. You can also specify through the env variable $UVM_HOME. If set in both locations, this setting takes precedence."
+				},
+				"svls.ignoreUvmPackageWarnings": {
+					"scope": "Window",
+					"type": "boolean",
+					"default": false,
+					"description": "The default UVM reference package from Accellera has a large number of syntax warnings. Enable this setting to hide those warnings from the problems list."
 				}
 			}
 		}

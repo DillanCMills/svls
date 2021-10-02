@@ -102,9 +102,17 @@ export function activate(context: ExtensionContext): void {
             throw new Error("`python.pythonPath` is not set");
         }
 
-        client = startLangServer(pythonPath, ["-m", "server", 
-                                              "--slangLib", libPath,
-                                              "--slangSource", sourcePath], cwd);
+        const opts = ["-m", "server", 
+            "--slangLib", libPath,
+            "--slangSource", sourcePath];
+
+        // const ffiles = workspace
+        //     .getConfiguration("svls")
+        //     .get<string[]>("slangFFileLists") || [];
+
+        // ffiles.forEach(f => opts.concat(["-f", f]));
+
+        client = startLangServer(pythonPath, opts, cwd);
     }
 
     context.subscriptions.push(client.start());
